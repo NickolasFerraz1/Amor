@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Heart com Mensagem</title>
+    <style>
+        /* Estilos para garantir que o efeito ocupe a tela inteira */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* Esconde as barras de rolagem */
+            background-color: #000; /* Fundo totalmente preto */
+        }
+
+        canvas {
+            display: block; /* Remove espaços indesejados abaixo do canvas */
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="heartCanvas"></canvas>
+
+    <script>
+        // --- Configuração Inicial ---
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Variáveis de Controle ---
+        const fontSize = 12;
+        const characters = '❤♡❤♡❤♡❤♡';
+        let columns;
+        let drops = [];
+        let heartGrid = []; // Grid para armazenar a forma do coração
+
+        // --- Variável da Mensagem ---
+        const message = "Eu te amo"; // Altere a mensagem aqui!
+
+        // --- Função de Setup e Redimensionamento ---
+        function setup() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            columns = Math.floor(canvas.width / fontSize);
+            const rows = Math.floor(canvas.height / fontSize);
+            
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                // Inicia cada gota em uma altura aleatória para um efeito mais natural
+                drops[i] = 1 + Math.random() * rows;
+            }
+
+            createHeartGrid();
+        }
+        
+        // --- Função para Criar a Grade do Coração ---
+        function createHeartGrid() {
+            const rows = Math.floor(canvas.height / fontSize);
+            heartGrid = Array(columns).fill(null).map(() => Array(rows).fill(false));
+
+            // Ajusta o tamanho e a posição do coração para o centro da tela
+            const heartScale = Math.min(canvas.width, canvas.height) / 40;
+            const offsetX = canvas.width / 2;
+            const offsetY = canvas.height / 2.2;
+
+            // Pontos da equação paramétrica de um coração para desenhar a borda
+            for (let t = 0; t < 2 * Math.PI; t += 0.01) {
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+
+                const gridX = Math.floor((x * heartScale + offsetX) / fontSize);
+                const gridY = Math.floor((y * heartScale + offsetY) / fontSize);
+
+                if (gridX >= 0 && gridX < columns && gridY >= 0 && gridY < rows) {
+                    heartGrid[gridX][gridY] = true;
+                }
+            }
+
+            // Algoritmo de preenchimento para o interior da forma.
+            for (let y = 0; y < rows; y++) {
+                let crossings = [];
+                // Encontra todos os pontos onde a linha cruza uma borda
+                for (let x = 1; x < columns; x++) {
+                    if (heartGrid[x][y] !== heartGrid[x - 1][y]) {
+                        crossings.push(x);
+                    }
+                }
+
+                // Preenche o espaço entre cada par de cruzamentos
+                for (let i = 0; i < crossings.length; i += 2) {
+                    if (i + 1 < crossings.length) {
+                        const startX = crossings[i];
+                        const endX = crossings[i + 1];
+                        for (let x = startX; x < endX; x++) {
+                            heartGrid[x][y] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        // --- Função de Desenho (Animação) ---
+        function draw() {
+            // Preenche a tela com um preto semi-transparente para o efeito de rastro
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Define a cor e a fonte dos caracteres da chuva
+            ctx.fillStyle = '#FF69B4'; // Rosa choque
+            ctx.font = `${fontSize}px monospace`;
+            
+            // Desenha a chuva de corações
+            for (let i = 0; i < drops.length; i++) {
+                const text = characters.charAt(Math.floor(Math.random() * characters.length));
+                
+                const x = i;
+                const y = Math.floor(drops[i]);
+                
+                // A mágica acontece aqui: só desenha se a posição estiver dentro da grade do coração
+                if (x >= 0 && x < columns && y >= 0 && heartGrid[x] && heartGrid[x][y]) {
+                    ctx.fillText(text, x * fontSize, y * fontSize);
+                }
+
+                // Move a gota para baixo
+                drops[i]++;
+
+                // Se a gota sair da tela, a reseta para o topo.
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+            }
+
+            // --- DESENHAR A MENSAGEM MINIMALISTA ---
+            // Define o estilo do texto
+            ctx.font = `bold ${Math.min(canvas.width / 15, 50)}px cursive `; // Tamanho da fonte responsivo
+            //ctx.fillStyle = 'rgba(4, 4, 4, 0.13)'; // Preto com leve transparência
+            ctx.fillStyle = 'rgba(255, 105, 180, 0.01)';
+            ctx.textAlign = 'center'; // Alinha o texto horizontalmente no centro
+            ctx.textBaseline = 'middle'; // Alinha o texto verticalmente no centro
+            
+            // Desenha o texto no centro do canvas
+            ctx.fillText(message, canvas.width / 2.01, canvas.height / 2.2);
+        }
+
+        // --- Iniciar e Manter a Animação ---
+        window.addEventListener('resize', setup);
+        
+        // Inicia tudo
+        setup();
+        // O valor do intervalo foi diminuído de 33 para 15 para acelerar a animação.
+        setInterval(draw, 15); 
+
+    </script>
+</body>
+</html>
